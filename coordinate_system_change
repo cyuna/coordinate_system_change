@@ -33,8 +33,8 @@ pcl::PointXYZINormal  getNDTPose(pcl::PointCloud<pcl::PointXYZINormal> rawCld)
 
 Eigen::MatrixXf getTransMat(pcl::PointXYZINormal ndt_pose)
 {   
-//   변환행렬 반환(맵좌표계->라이다좌표계 변환행렬, 인자 순서를 바꾸면 라이다좌표계-> 맵좌표계 변환행렬 반환가능하게)
-//(getLIDAROneScan으로부터 얻은 lidar onescan point cloud의 모든 point들의 좌표계 변환을 위해 변환행렬 추출)
+// 변환행렬 반환(맵좌표계->라이다좌표계 변환행렬
+// getLIDAROneScan으로부터 얻은 lidar onescan point cloud의 모든 point들의 좌표계 변환을 위해 변환행렬 추출
     Eigen::AngleAxisf init_rotation_x(-ndt_pose.intensity, Eigen::Vector3f::UnitX());
     Eigen::AngleAxisf init_rotation_y(-ndt_pose.normal_x, Eigen::Vector3f::UnitY());
     Eigen::AngleAxisf init_rotation_z(-ndt_pose.curvature, Eigen::Vector3f::UnitZ());
@@ -45,7 +45,8 @@ Eigen::MatrixXf getTransMat(pcl::PointXYZINormal ndt_pose)
 
 pcl::PointCloud<pcl::PointXYZINormal> transformPoint(pcl::PointCloud<pcl::PointXYZINormal> rawCld , Eigen::MatrixXf trans_mat)
 {
-  // 좌표변환된 point 반환 (getLIDAROneScan으로부터 얻은 lidar onescan point cloud의 모든 point들을 getTransMat에서 얻은 변환행렬로 transform적용)
+  // 좌표변환된 point 반환 
+  //getLIDAROneScan으로부터 얻은 lidar onescan point cloud의 모든 point들을 getTransMat에서 얻은 변환행렬로 transform적용
   pcl::PointCloud<pcl::PointXYZINormal> resultCld;
   for(int j = 0; j <  rawCld.size();j++)
     { 
@@ -85,9 +86,9 @@ pcl::PointCloud<pcl::PointXYZINormal> transformPoint(pcl::PointCloud<pcl::PointX
 
   int main(int argc, char** argv)
   {
-    pcl::PointCloud<pcl::PointXYZINormal>::Ptr inCloud(new pcl::PointCloud<pcl::PointXYZINormal>);
-    pcl::PointCloud<pcl::PointXYZINormal>::Ptr rawCloud(new pcl::PointCloud<pcl::PointXYZINormal>);
-    pcl::PointCloud<pcl::PointXYZINormal>::Ptr resultCloud(new pcl::PointCloud<pcl::PointXYZINormal>);
+    pcl::PointCloud<pcl::PointXYZINormal>::Ptr inCloud(new pcl::PointCloud<pcl::PointXYZINormal>); //point map pcd
+    pcl::PointCloud<pcl::PointXYZINormal>::Ptr rawCloud(new pcl::PointCloud<pcl::PointXYZINormal>); //original raw point cloud 
+    pcl::PointCloud<pcl::PointXYZINormal>::Ptr resultCloud(new pcl::PointCloud<pcl::PointXYZINormal>); //transform raw point cloud
     
     /*point cloud map load*/
     
@@ -116,24 +117,25 @@ pcl::PointCloud<pcl::PointXYZINormal> transformPoint(pcl::PointCloud<pcl::PointX
         pass.setFilterLimits(time_sec, time_sec);
         pass.setFilterLimitsNegative(false);
         pass.filter(*rawCloud); //raw point cloud      
-        pass.setFilterLimitsNegative(true); //rest of point raw
-        pass.filter(midCloud);
+        pass.setFilterLimitsNegative(true); 
+        pass.filter(midCloud);//rest of point raw
 
         std::cout << "time_sec: " << time_sec << std::endl;
         std::cout << rawCloud->size() << std::endl;
         *inCloud = midCloud;
 
-        pcl::PointXYZINormal ndt = getNDTPose(*rawCloud); 
+        pcl::PointXYZINormal ndt = getNDTPose(*rawCloud); //one scan 에서 ndt pose 값 추출 
         std::cout << "x : " << ndt.x << " y : " << ndt.y <<  " z : " << ndt.z  <<  " intensity: " << ndt.intensity  <<  " nx : " << ndt.normal_x <<  " curva : " << ndt.curvature << std::endl;
-        if(ndt.curvature ==0)
+        if(ndt.curvature ==0) //ndt pose 값이 없는 경우
           { std::cout << "no ndt"<<std::endl;
             continue;
           }         
 
-        Eigen::MatrixXf transform = getTransMat(ndt);
+        Eigen::MatrixXf transform = getTransMat(ndt); //변환 행렬 
         
-        *resultCloud = transformPoint(*rawCloud , transform);
-
+        *resultCloud = transformPoint(*rawCloud , transform); //좌표 이동 
+        
+        /*save change point cloud*/
         std::stringstream ss1; 
         ss1 << "_" << i << ".pcd";
         pcl::io::savePCDFile("/home/autoware/yuna/yuna_point/after_cor/" + ss1.str(), *resultCloud, false);
